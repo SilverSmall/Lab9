@@ -1,0 +1,67 @@
+import pymongo
+
+# Підключення до сервера MongoDB
+client = pymongo.MongoClient("mongodb://localhost:27017/")
+
+# Створення бази даних
+db = client["restaurant"]
+
+# Створення колекцій: замовлення, меню та відгуки
+orders = db["orders"]
+menu = db["menu"]
+reviews = db["reviews"]
+
+# Додавання даних у колекції меню
+menu_items = [
+    {"name": "Burger", "price": 9.99},
+    {"name": "Pizza", "price": 12.99},
+    {"name": "Salad", "price": 7.99}
+]
+menu.insert_many(menu_items)
+
+# Додавання даних у колекцію замовлень
+order1 = {
+    "customer_name": "John",
+    "items": [
+        {"item_id": menu.find_one({"name": "Burger"})["_id"], "quantity": 2},
+        {"item_id": menu.find_one({"name": "Pizza"})["_id"], "quantity": 1}
+    ],
+    "total": 32.97
+}
+order2 = {
+    "customer_name": "Jane",
+    "items": [
+        {"item_id": menu.find_one({"name": "Salad"})["_id"], "quantity": 3}
+    ],
+    "total": 23.97
+}
+orders.insert_one(order1)
+orders.insert_one(order2)
+
+# Додавання даних у колекцію відгуків
+review1 = {"customer_name": "John", "comment": "Great food and service!", "rating": 5}
+review2 = {"customer_name": "Jane", "comment": "The salad was fresh.", "rating": 4}
+reviews.insert_many([review1, review2])
+
+# Зчитування всіх замовлень
+print("Список замовлень:")
+for order in orders.find():
+    print(order)
+
+# Оновлення замовлення (додамо ще один елемент у замовлення)
+order_to_update = orders.find_one({"customer_name": "John"})
+orders.update_one(
+    {"_id": order_to_update["_id"]},
+    {"$push": {"items": {"item_id": menu.find_one({"name": "Salad"})["_id"], "quantity": 1}}}
+)
+
+# Видалення відгуку
+reviews.delete_one({"customer_name": "Jane"})
+
+# Зчитування відгуків після видалення
+print("\nСписок відгуків після видалення:")
+for review in reviews.find():
+    print(review)
+
+# Закриття підключення
+client.close()
